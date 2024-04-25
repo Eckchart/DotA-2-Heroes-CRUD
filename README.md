@@ -1,3 +1,1 @@
-# DotA-2-Heroes-CRUD
-
-Simple CRUD app in React with TypeScript showcasing DotA 2 heroes and some of their attributes.
+CRUD app in ReactJS with Typescript for the Frontend, Node.js + Express for the Backend, MySQL for the database, and Jest for unit testing, showcasing DotA 2 heroes and some of their attributes, and the abilities of a hero.
