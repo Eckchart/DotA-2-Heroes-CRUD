@@ -1,17 +1,18 @@
-import { Fragment, useState, useEffect, ChangeEvent } from 'react';
+import React, { Fragment, useState, useEffect, ChangeEvent } from 'react';
 import { Button, Table } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { act } from "@testing-library/react";
-import { Hero } from "../domain/Hero";
+import { Hero } from "../domain/Hero.ts";
+import { Socket } from "socket.io-client";
+import { base_backend_url } from './baseBackendUrl.ts';
 
 
 const Pagination = ({nrItemsPerPage, totalNrItems, curPage, changePage}:
     {nrItemsPerPage: number, totalNrItems: number, curPage: number, changePage: (pageNr: number) => void}) =>
 {
     const lastPage = Math.ceil(totalNrItems / nrItemsPerPage);
-    const pageNrs = [];
+    const pageNrs: number[] = [];
     for (let i = 1; i <= lastPage; ++i)
     {
         pageNrs.push(i);
@@ -48,17 +49,40 @@ const Pagination = ({nrItemsPerPage, totalNrItems, curPage, changePage}:
 }
 
 
-function HeroesTable()
+interface HeroTableProps
+{
+    socket: Socket
+}
+
+
+const HeroesTable: React.FC<HeroTableProps> = ({ socket }) =>
 {
     let history = useNavigate();
     const [filterText, setFilterText] = useState<string>("");
     const [curPage, setCurPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(
-        localStorage.getItem("items-per-page") == null ? 3 : parseInt(localStorage.getItem("items-per-page") as string)
+        localStorage.getItem("items-per-page") === null ? 3 : parseInt(localStorage.getItem("items-per-page") as string)
     );
     const [fetchedFilteredSortedCurPageHeroes, setFetchedFilteredSortedCurPageHeroes] = useState<Hero[]>([]);
     const [sortOrder, setSortOrder] = useState<string>("asc");
     const [totalFilteredHeroesCount, setTotalFilteredHeroesCount] = useState<number>(0);
+    const [webSocketFlag, setWebSocketFlag] = useState<number>(0);
+
+
+    socket.on('connect', () =>
+    {
+        console.log("Connected to WebSocket server.");
+    });
+
+    socket.on("changed-heroes-table", () =>
+    {
+        setWebSocketFlag(webSocketFlag ^ 1);
+    });
+
+    socket.on('disconnect', () =>
+    {
+        console.log("Disconnected from WebSocket server.");
+    });
 
     useEffect(() =>
     {
@@ -66,8 +90,20 @@ function HeroesTable()
         {
             try
             {
-                const response = await axios.get<string>(`http://localhost:3001/api/heroes/count?filterText=${encodeURIComponent(filterText)}`);
-                act(() => setTotalFilteredHeroesCount(parseInt(response.data)));
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.get<string>(`${base_backend_url}/api/heroes/count?filterText=${encodeURIComponent(filterText)}`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                setTotalFilteredHeroesCount(parseInt(response.data));
             }
             catch (error)
             {
@@ -76,7 +112,7 @@ function HeroesTable()
         };
 
         fetchTotalFilteredHeroesCount();
-    }, [filterText]);
+    }, [filterText, webSocketFlag, history]);
 
     useEffect(() =>
     {
@@ -92,20 +128,31 @@ function HeroesTable()
                 const lastItemIdx: number = curPage * itemsPerPage - 1;
                 const firstItemIdx: number = lastItemIdx - itemsPerPage + 1;
 
-                const response = await axios.get<Hero[]>(`http://localhost:3001/api/heroes/filteredSortedCurPageItems?sortOrder=${encodeURIComponent(sortOrder)}` +
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.get<Hero[]>(`${base_backend_url}/api/heroes/filteredSortedCurPageItems?sortOrder=${encodeURIComponent(sortOrder)}` +
                     `&filterText=${encodeURIComponent(filterText)}` +
                     `&firstItemIdx=${encodeURIComponent(firstItemIdx)}` +
-                    `&lastItemIdx=${encodeURIComponent(Math.min(totalFilteredHeroesCount - 1, lastItemIdx))}`);
-                act(() =>
-                    setFetchedFilteredSortedCurPageHeroes(response.data.map(heroData =>
-                        // these have to conform to the table column names!
-                        new Hero(heroData.heroName,
-                                 heroData.baseStr,
-                                 heroData.baseAgi,
-                                 heroData.baseInt,
-                                 heroData.baseMs,
-                                 heroData.heroID)
-                )));
+                    `&lastItemIdx=${encodeURIComponent(Math.min(totalFilteredHeroesCount - 1, lastItemIdx))}`,
+                    {
+                        headers:
+                        {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                setFetchedFilteredSortedCurPageHeroes(response.data.map(heroData =>
+                    // these have to conform to the table column names!
+                    new Hero(heroData.heroName,
+                                heroData.baseStr,
+                                heroData.baseAgi,
+                                heroData.baseInt,
+                                heroData.baseMs,
+                                heroData.heroID)
+                ));
             }
             catch (error)
             {
@@ -114,7 +161,7 @@ function HeroesTable()
         };
 
         fetchFilteredSortedCurPageHeroes();
-    }, [sortOrder, filterText, totalFilteredHeroesCount, itemsPerPage, curPage]);
+    }, [sortOrder, filterText, totalFilteredHeroesCount, itemsPerPage, curPage, webSocketFlag, history]);
 
     const handleDelete = async (hero_id: number): Promise<void> =>
     {
@@ -123,8 +170,21 @@ function HeroesTable()
         {
             try
             {
-                await axios.delete<string>(`http://localhost:3001/api/heroes/${hero_id}`);
-                act(() => history("/heroes"));
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                await axios.delete<string>(`${base_backend_url}/api/heroes/${hero_id}`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+                );
+                history("/heroes");  // To trigger a re-render.
             }
             catch (error)
             {
@@ -133,8 +193,20 @@ function HeroesTable()
             try
             {
                 // The total number of heroes has decreased, so we need to update it.
-                const response = await axios.get<string>(`http://localhost:3001/api/heroes/count?filterText=${encodeURIComponent(filterText)}`);
-                act(() => setTotalFilteredHeroesCount(parseInt(response.data)));
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.get<string>(`${base_backend_url}/api/heroes/count?filterText=${encodeURIComponent(filterText)}`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                setTotalFilteredHeroesCount(parseInt(response.data));
             }
             catch (error)
             {
@@ -176,12 +248,12 @@ function HeroesTable()
                     <Pagination nrItemsPerPage={itemsPerPage} totalNrItems={totalFilteredHeroesCount} curPage={curPage} changePage={changePage}/>
 
                     <select data-testid="select-nr-items-page" value={itemsPerPage} onChange={handleItemsPerPageChange}
-                            style={{marginLeft: "1rem", width:"40px", height: "37px"}}>
+                            style={{marginLeft: "1rem", width:"50px", height: "37px"}}>
                         <option value={1}>1</option>
                         <option value={2}>2</option>
                         <option value={3}>3</option>
                         <option value={4}>4</option>
-                        <option value={5}>5</option>
+                        <option value={100}>100</option>
                     </select>
 
                     <input value={filterText} placeholder="Filter by name" onChange={(e) => setFilterText(e.target.value)}

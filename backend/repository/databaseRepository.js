@@ -1,5 +1,6 @@
 import SeqHero from "../sequelize_models/Hero.js";
 import SeqAbility from "../sequelize_models/Ability.js";
+import SeqUser from "../sequelize_models/User.js";
 import { Sequelize } from "sequelize";
 
 
@@ -44,7 +45,7 @@ export class databaseRepository
         return categories;
     }
 
-    async getFilteredSortedCurPageHeroes(sortOrder, filterText, firstItemIdx, lastItemIdx)
+    async getFilteredSortedPaginatedHeroes(sortOrder, filterText, firstItemIdx, lastItemIdx)
     {
         const filterCondition = {
             heroName:
@@ -159,6 +160,36 @@ export class databaseRepository
         await ability.destroy();
 
         return SeqAbility.findAll();
+    }
+
+
+    // USERS QUERIES
+
+    async getUser(username, password)
+    {
+        const user = await SeqUser.findOne({
+            where: {
+                username: username,
+                password: password
+            }
+        });
+        return user;
+    }
+
+    async createUser(username, password)
+    {
+        const user = await SeqUser.findOne({
+            where: {
+                username: username,
+            }
+        });
+        if (user)
+        {
+            return null;
+        }
+        const newUser = await SeqUser.create({ username: username, password: password });
+
+        return newUser;
     }
 }
 

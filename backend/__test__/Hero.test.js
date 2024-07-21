@@ -18,16 +18,16 @@ describe("Hero queries", () =>
 
     it("should create and retrieve a hero", async () => {
         const hero = await TestSeqHero.create({
-            heroName: "Bounty Hunter",
-            baseStr: 23,
-            baseAgi: 23,
-            baseInt: 18,
+            heroName: "TEST_HERO_NAME_1",
+            baseStr: 30,
+            baseAgi: 25,
+            baseInt: 20,
             baseMs: 300
         });
 
         const retrievedHero = await TestSeqHero.findOne({ where: { heroID: hero.heroID } });
 
-        expect(retrievedHero.heroName).toBe("Bounty Hunter");
+        expect(retrievedHero.heroName).toBe("TEST_HERO_NAME_1");
         expect(retrievedHero.baseMs).toBe(300);
     });
 

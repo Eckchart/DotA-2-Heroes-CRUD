@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Button, Form } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Hero } from "../domain/Hero";
+import { Hero } from "../domain/Hero.ts";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { act } from "@testing-library/react";
+import { base_backend_url } from "./baseBackendUrl.ts";
 
 
 const initialFormValues: Hero = new Hero('', 0, 0, 0, 0);
@@ -32,7 +32,13 @@ function Edit()
         e.preventDefault();
         try
         {
-            await axios.put(`http://localhost:3001/api/heroes/${id}`,
+            const token = localStorage.getItem("jwt_token");
+            if (!token)
+            {
+                history("/login");
+                return;
+            }
+            await axios.put(`${base_backend_url}/api/heroes/${id}`,
             {
                 name: hero.name,
                 str: hero.str,
@@ -40,8 +46,14 @@ function Edit()
                 int: hero.int,
                 ms: hero.ms,
                 id: id
+            },
+            {
+                headers:
+                {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            act(() => history("/heroes"));
+            history("/heroes");
         }
         catch (error)
         {

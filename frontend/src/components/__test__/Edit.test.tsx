@@ -1,8 +1,11 @@
+import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import axios  from "axios";
-import HeroesTable from "../HeroesTable";
-import Edit from "../Edit";
+import HeroesTable from "../HeroesTable.tsx";
+import Edit from "../Edit.tsx";
+import { io, Socket } from "socket.io-client";
+const socket: Socket = io('http://localhost:3001');
 
 jest.mock("axios");
 
@@ -32,7 +35,7 @@ describe("Edit Page", () =>
         render(
             <MemoryRouter initialEntries={["/heroes/edit", "/heroes"]}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable />} />
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>} />
                     <Route path="/heroes/edit" element={<Edit />} />
                 </Routes>
             </MemoryRouter>
@@ -88,7 +91,7 @@ describe("Edit Page", () =>
         render(
             <MemoryRouter initialEntries={["/heroes/edit", "/heroes"]}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable />} />
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>} />
                     <Route path="/heroes/edit" element={<Edit />} />
                 </Routes>
             </MemoryRouter>

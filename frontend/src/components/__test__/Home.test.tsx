@@ -1,8 +1,11 @@
+import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import "@testing-library/jest-dom";
-import HeroesTable from "../HeroesTable";
-import Home from "../Home";
+import HeroesTable from "../HeroesTable.tsx";
+import Home from "../Home.tsx";
+import { io, Socket } from "socket.io-client";
+const socket: Socket = io('http://localhost:3001');
 
 
 describe("Home Page", () =>
@@ -13,7 +16,7 @@ describe("Home Page", () =>
             <MemoryRouter initialEntries={['/heroes', '/']}>
                 <Routes>
                     <Route path="/" element={<Home/>}/>
-                    <Route path="/heroes" element={<HeroesTable/>}/>
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>}/>
                 </Routes>
             </MemoryRouter>
         );

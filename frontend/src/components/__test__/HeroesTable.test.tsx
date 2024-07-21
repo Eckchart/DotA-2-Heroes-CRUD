@@ -1,9 +1,12 @@
+import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import axios from "axios";
 import "@testing-library/jest-dom";
-import Add from "../AddPage";
-import HeroesTable from "../HeroesTable";
+import Add from "../AddPage.tsx";
+import HeroesTable from "../HeroesTable.tsx";
+import { io, Socket } from "socket.io-client";
+const socket: Socket = io('http://localhost:3001');
 
 jest.mock("axios");
 
@@ -42,7 +45,7 @@ describe("Heroes Table", () =>
         render(
             <MemoryRouter initialEntries={['/heroes']}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable/>}/>
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>}/>
                 </Routes>
             </MemoryRouter>
         );
@@ -76,7 +79,7 @@ describe("Heroes Table", () =>
         render(
             <MemoryRouter initialEntries={['/heroes']}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable/>}/>
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>}/>
                 </Routes>
             </MemoryRouter>
         );
@@ -106,7 +109,7 @@ describe("Heroes Table", () =>
             }
             if (url.includes("filter"))
             {
-                // has to be wrapped in a list!!11
+                // has to be wrapped in a list!
                 return Promise.resolve({ data: [mockHeroesData[0]] });
             }
             return Promise.resolve({ data: mockHeroesData });
@@ -115,7 +118,7 @@ describe("Heroes Table", () =>
         render(
             <MemoryRouter initialEntries={['/heroes']}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable/>}/>
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>}/>
                 </Routes>
             </MemoryRouter>
         );
@@ -160,7 +163,7 @@ describe("Heroes Table", () =>
         render(
             <MemoryRouter initialEntries={['/heroes']}>
                 <Routes>
-                    <Route path="/heroes" element={<HeroesTable/>}/>
+                    <Route path="/heroes" element={<HeroesTable socket={socket}/>}/>
                     <Route path="/heroes/add" element={<Add/>}/>
                 </Routes>
             </MemoryRouter>

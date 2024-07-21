@@ -2,6 +2,9 @@ import dbServices from "../services/databaseServices.js";
 import Joi from "joi";
 import { Hero } from "../domain/Hero.js";
 import { Ability } from "../domain/Ability.js";
+import { socketIoServer } from "../server.js";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 
 // HEROES
@@ -23,13 +26,17 @@ const filterTextSchema = Joi.object({
 });
 
 const heroSchema = Joi.object({
-    name: Joi.string().allow('').regex(/^[a-zA-z ]+$/).min(2).max(25),  // should only contain letters AND SPACES
+    name: Joi.string(),
     str: Joi.number().positive().allow(0).min(5).max(35),
     agi: Joi.number().positive().allow(0).min(5).max(35),
     int: Joi.number().positive().allow(0).min(5).max(35),
     ms: Joi.number().positive().allow(0).min(270).max(330)
 });
 
+const userSchema = Joi.object({
+    username: Joi.string().required(),
+    password: Joi.string().required()
+});
 
 export const getAllHeroes = async (req, res) =>
 {
@@ -106,7 +113,6 @@ export const getFilteredSortedPaginatedHeroes = async (req, res) =>
     const sortOrder = req.query.sortOrder;
     const filterText = req.query.filterText;
 
-    // if we don't convert them to integers here weird stuff happens..
     const firstItemIdx = parseInt(req.query.firstItemIdx);
     const lastItemIdx = parseInt(req.query.lastItemIdx);
     try
@@ -138,6 +144,9 @@ export const createHero = async (req, res) =>
     try
     {
         const createdHero = await dbServices.createHero(newHero.name, newHero.str, newHero.agi, newHero.int, newHero.ms);
+
+        socketIoServer.emit("changed-heroes-table");
+        
         res.status(201).json(createdHero);
     }
     catch (error)
@@ -172,6 +181,9 @@ export const updateHero = async (req, res) =>
     try
     {
         const updHero = await dbServices.updateHero(req_hero_id, instanceHero);
+
+        socketIoServer.emit("changed-heroes-table");
+
         res.status(200).json(updHero);
     }
     catch (error)
@@ -192,6 +204,9 @@ export const deleteHero = async (req, res) =>
     try
     {
         await dbServices.deleteHero(req_hero_id);
+
+        socketIoServer.emit("changed-heroes-table");
+
         res.status(200).json({ message: "Hero deleted successfully" });
     }
     catch (error)
@@ -210,7 +225,7 @@ const abilityIdSchema = Joi.object({
 const abilitySchema = Joi.object({
     ability_name: Joi.string().allow(''),
     mana_cost: Joi.number().min(0).max(2000),
-    cooldown: Joi.number().min(0).max(400),  // in seconds, btw
+    cooldown: Joi.number().min(0).max(400),  // in seconds
 });
 
 
@@ -317,5 +332,70 @@ export const deleteAbility = async (req, res) =>
     catch (error)
     {
         return res.status(400).json({ error: "Error deleting ability." });
+    }
+};
+
+
+// USER
+
+export const userLogin = async (req, res) =>
+{
+    const { error } = userSchema.validate({
+        username: req.body.username,
+        password: req.body.password
+    });
+    if (error)
+    {
+        return res.status(400).json({ error: error.details[0].message });
+    }
+    
+    const { username, password } = req.body;
+    try
+    {
+        let user = await dbServices.getUser(username, password);
+        if (!user)
+        {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const payload = { userId: user.userID, username: user.username };
+        const jwtSecret = crypto.randomBytes(32).toString("hex");
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: "24h" });
+        res.status(200).json({ access_token: token, msg: "Logged in successfully." });
+    }
+    catch (error)
+    {
+        res.status(400).json({ error: "Error logging in." });
+    }
+};
+
+export const userRegister = async (req, res) =>
+{
+    const { error } = userSchema.validate({
+        username: req.body.username,
+        password: req.body.password
+    });
+    if (error)
+    {
+        return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { username, password } = req.body;
+    try
+    {
+        const createdUser = await dbServices.createUser(username, password);
+        if (!createdUser)
+        {
+            res.status(409).json({ error: "Username already exists." });
+        }
+
+        const payload = { userId: createdUser.userID, username: createdUser.username };
+        const jwtSecret = crypto.randomBytes(32).toString("hex");
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: "24h" });
+        res.status(201).json({ access_token: token, createdUser });
+    }
+    catch (error)
+    {
+        res.status(400).json({ error: "Error registering." });
     }
 };

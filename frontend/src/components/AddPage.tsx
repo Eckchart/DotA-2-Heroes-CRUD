@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Hero } from "../domain/Hero";
+import { Hero } from "../domain/Hero.ts";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { act } from "@testing-library/react";
+import { base_backend_url } from "./baseBackendUrl.ts";
 
 
 const initialFormValues: Hero = new Hero('', 0, 0, 0, 0);
@@ -19,15 +20,27 @@ function Add()
         e.preventDefault();
         try
         {
-            await axios.post("http://localhost:3001/api/heroes",
+            const token = localStorage.getItem("jwt_token")
+            if (!token)
+            {
+                history("/login");
+                return;
+            }
+            await axios.post(`${base_backend_url}/api/heroes`,
             {
                 name: hero.name,
                 str: hero.str,
                 agi: hero.agi,
                 int: hero.int,
                 ms: hero.ms
+            },
+            {
+                headers:
+                {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            act(() => history("/heroes"));
+            history("/heroes");
         }
         catch (error)
         {

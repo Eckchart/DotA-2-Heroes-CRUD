@@ -1,20 +1,35 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { base_backend_url } from "./baseBackendUrl.ts";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import { Button } from "react-bootstrap";
 import { Chart, registerables } from "chart.js/auto";
 import axios from "axios";
+import { Socket } from "socket.io-client";
 Chart.register(...registerables);
 
 
-function BarChart()
+interface BarChartProps
 {
+    socket: Socket
+}
+
+
+const BarChart: React.FC<BarChartProps> = ({ socket }) =>
+{
+    let history = useNavigate();
     type categoryCount =
     {
         category: number,
         count: number
     };
     const [strCategories, setStrCategories] = useState<categoryCount[]>([]);
+    const [webSocketFlag, setWebSocketFlag] = useState<number>(0);
+
+    socket.on("changed-heroes-table", () =>
+    {
+        setWebSocketFlag(webSocketFlag ^ 1);
+    });
     
     useEffect(() =>
     {
@@ -22,7 +37,20 @@ function BarChart()
         {
             try
             {
-                const response = await axios.get<categoryCount[]>("http://localhost:3001/api/heroes/bar_chart");
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.get<categoryCount[]>(`${base_backend_url}/api/heroes/bar_chart`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+                );
                 setStrCategories(response.data);
             }
             catch (error)
@@ -32,7 +60,7 @@ function BarChart()
         };
 
         fetchStrCategories();
-    }, []);
+    }, [webSocketFlag, history]);
     
     const categoryLength = 4;
     const myData = {

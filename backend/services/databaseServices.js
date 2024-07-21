@@ -13,7 +13,6 @@ export class databaseServices
         return this._dbRepo;
     }
 
-
     // HEROES
     
     async getAllHeroes()
@@ -33,7 +32,7 @@ export class databaseServices
 
     async getFilteredSortedPaginatedHeroes(sortOrder, filterText, firstItemIdx, lastItemIdx)
     {
-        return this._dbRepo.getFilteredSortedCurPageHeroes(sortOrder, filterText, firstItemIdx, lastItemIdx);
+        return this._dbRepo.getFilteredSortedPaginatedHeroes(sortOrder, filterText, firstItemIdx, lastItemIdx);
     }
 
     async createHero(name, str, agi, int, ms)
@@ -101,6 +100,18 @@ export class databaseServices
     async deleteAbility(abilityId)
     {
         return this._dbRepo.deleteAbility(abilityId);
+    }
+
+    // USERS
+
+    async getUser(username, password)
+    {
+        return this._dbRepo.getUser(username, password);
+    }
+
+    async createUser(username, password)
+    {
+        return this._dbRepo.createUser(username, password);
     }
 }
 

@@ -1,12 +1,13 @@
 import { Sequelize } from "sequelize";
 
 
-const sequelize = new Sequelize({
+const sequelize = new Sequelize("database", "user", "password", {
     dialect: "mysql",
-    database: "reactcrud",
-    username: "root",
-    password: "",
-    host: "localhost",
+    dialectOptions:
+    {
+        socketPath: "/cloudsql/'SQL_CONNECTION_NAME'",
+        timestamps: false
+    }
 });
 
 export default sequelize;

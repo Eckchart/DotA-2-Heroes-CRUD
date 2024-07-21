@@ -9,13 +9,15 @@ import { getAllHeroes,
          getAllAbilities,
          createAbility,
          updateAbility,
-         deleteAbility } from "./controller/databaseController.js";
-
+         deleteAbility,
+         userLogin,
+         userRegister } from "./controller/databaseController.js";
 
 const router = express.Router();
 
-// HEROES
+// DATABASE
 
+// HEROES
 router.get("/heroes", getAllHeroes);
 router.get("/heroes/bar_chart", getStrCategories);
 router.get("/heroes/count", getTotalFilteredHeroesCount);  // with query
@@ -29,7 +31,6 @@ router.delete("/heroes/:id", deleteHero);
 
 
 // ABILITIES
-
 router.get("/abilities", getAllAbilities);
 
 router.post("/abilities", createAbility);
@@ -37,5 +38,10 @@ router.post("/abilities", createAbility);
 router.put("/abilities/:id", updateAbility);
 
 router.delete("/abilities/:id", deleteAbility);
+
+
+// USERS
+router.post("/login", userLogin);
+router.post("/register", userRegister);
 
 export default router;

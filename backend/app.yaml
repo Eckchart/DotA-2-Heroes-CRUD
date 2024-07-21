@@ -1,0 +1,5 @@
+runtime: nodejs20
+service_account: 'serviceName'@'PROJECT_ID'.iam.gserviceaccount.com
+beta_settings:
+  cloud_sql_instances: 'PROJECT_ID':'LOCATION':'CLOUD_SQL_INSTANCE_NAME'
+

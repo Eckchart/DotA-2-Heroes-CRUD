@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Ability } from "../domain/Ability";
+import { Ability } from "../domain/Ability.ts";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { act } from "@testing-library/react";
+import { base_backend_url } from "./baseBackendUrl.ts";
 
 
 const initialFormValues: Ability = new Ability('', 0, 0, 1);
@@ -19,14 +19,26 @@ function AddAbility()
         e.preventDefault();
         try
         {
-            await axios.post("http://localhost:3001/api/abilities",
+            const token = localStorage.getItem("jwt_token");
+            if (!token)
+            {
+                history("/login");
+                return;
+            }
+            await axios.post(`${base_backend_url}/api/abilities`,
             {
                 name: ability.name,
                 mana_cost: ability.mana_cost,
                 cooldown: ability.cooldown,
                 hero_id: ability.hero_id,
+            },
+            {
+                headers:
+                {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            act(() => history("/abilities"));
+            history("/abilities");
         }
         catch (error)
         {

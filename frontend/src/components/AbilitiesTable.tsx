@@ -1,10 +1,10 @@
-import { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Button, Table } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { act } from "@testing-library/react";
-import { Ability } from "../domain/Ability";
+import { Ability } from "../domain/Ability.ts";
+import { base_backend_url } from './baseBackendUrl.ts';
 
 
 function AbilitiesTable()
@@ -18,15 +18,27 @@ function AbilitiesTable()
         {
             try
             {
-                const response = await axios.get<Ability[]>("http://localhost:3001/api/abilities");
-                act(() =>
-                    setFetchedAbilities(response.data.map(abilityData =>
-                        new Ability(abilityData.abilityName,
-                                    abilityData.abilityManaCost,
-                                    abilityData.abilityCooldown,
-                                    abilityData.heroID,
-                                    abilityData.AbilityID)
-                )));
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.get<Ability[]>(`${base_backend_url}/api/abilities`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+                );
+                setFetchedAbilities(response.data.map(abilityData =>
+                    new Ability(abilityData.abilityName,
+                                abilityData.abilityManaCost,
+                                abilityData.abilityCooldown,
+                                abilityData.heroID,
+                                abilityData.AbilityID)
+                ));
             }
             catch (error)
             {
@@ -35,7 +47,7 @@ function AbilitiesTable()
         };
 
         fetchData();
-    }, []);
+    }, [history]);
 
     const handleDelete = async (ability_id: number): Promise<void> =>
     {
@@ -44,16 +56,28 @@ function AbilitiesTable()
         {
             try
             {
-                const response = await axios.delete<Ability[]>(`http://localhost:3001/api/abilities/${ability_id}`);
-                act(() =>
-                    setFetchedAbilities(response.data.map(abilityData =>
-                        new Ability(abilityData.abilityName,
-                                    abilityData.abilityManaCost,
-                                    abilityData.abilityCooldown,
-                                    abilityData.heroID,
-                                    abilityData.AbilityID)
-                )));
-                act(() => history("/abilities"));
+                const token = localStorage.getItem("jwt_token");
+                if (!token)
+                {
+                    history("/login");
+                    return;
+                }
+                const response = await axios.delete<Ability[]>(`${base_backend_url}/api/abilities/${ability_id}`,
+                {
+                    headers:
+                    {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+                );
+                setFetchedAbilities(response.data.map(abilityData =>
+                    new Ability(abilityData.abilityName,
+                                abilityData.abilityManaCost,
+                                abilityData.abilityCooldown,
+                                abilityData.heroID,
+                                abilityData.AbilityID)
+                ));
+                history("/abilities");  // To trigger a re-render.
             }
             catch (error)
             {
